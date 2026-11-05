@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MetdoSystems — Reporte de Incidentes</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="header">
+    <div class="header-top">
+      <div class="marca"><span class="logo">M</span> MetdoSystems — Reporte de Incidentes</div>
+      <div class="usuario" id="usuario"></div>
+    </div>
+    <nav class="subnav">
+      <span><a href="/reporte.html" class="activo">Reportar incidente</a><a href="#mis-reportes">Mis reportes</a></span>
+      <button type="button" data-logout>Cerrar sesión</button>
+    </nav>
+  </header>
+
+  <main class="angosto">
+    <section class="card" id="reporte">
+      <div class="pasos" aria-label="Progreso del reporte">
+        <div class="paso" data-paso="1"><span class="num">1</span> Tipo</div><div class="linea"></div>
+        <div class="paso" data-paso="2"><span class="num">2</span> Detalle</div><div class="linea"></div>
+        <div class="paso" data-paso="3"><span class="num">3</span> Evidencia</div><div class="linea"></div>
+        <div class="paso" data-paso="4"><span class="num">4</span> Enviar</div>
+      </div>
+      <div id="error" class="alerta alerta-error oculto" role="alert"></div>
+      <div id="conversacion" aria-live="polite"></div>
+      <div id="entrada"></div>
+    </section>
+
+    <section class="card oculto" id="confirmacion">
+      <div class="confirmacion">
+        <div>✅ Tu reporte fue enviado al equipo de TI</div>
+        <div class="ref" id="ref"></div>
+        <p>Criticidad inicial asignada: <span id="crit"></span> · Estado: <span id="est"></span></p>
+        <p><small>Gracias por avisar. El equipo de TI ya lo ve en su panel y vas a poder seguir el estado en «Mis reportes».</small></p>
+        <button class="btn btn-secundario" id="otro">Reportar otro incidente</button>
+      </div>
+    </section>
+
+    <section class="card" id="mis-reportes">
+      <h2>Mis reportes</h2>
+      <table>
+        <thead><tr><th>N.º</th><th>Tipo</th><th>Fecha</th><th>Estado</th></tr></thead>
+        <tbody id="filas"></tbody>
+      </table>
+    </section>
+  </main>
+  <script src="/comun.js"></script>
+  <script src="/reporte.js"></script>
+</body>
+</html>

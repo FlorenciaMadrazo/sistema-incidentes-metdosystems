@@ -1,0 +1,5 @@
+node_modules/
+data/
+respaldos/
+*.log
+.DS_Store

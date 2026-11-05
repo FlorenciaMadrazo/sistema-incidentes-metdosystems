@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MetdoSystems — Dashboard de Incidentes</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="header">
+    <div class="header-top">
+      <div class="marca"><span class="logo">M</span> MetdoSystems — Dashboard de Incidentes</div>
+      <div class="usuario" id="usuario"></div>
+    </div>
+    <nav class="subnav">
+      <span><a href="/dashboard.html" class="activo">Dashboard de TI</a></span>
+      <button type="button" data-logout>Cerrar sesión</button>
+    </nav>
+  </header>
+  <main>
+    <section class="kpis">
+      <div class="kpi"><span>Incidentes abiertos</span><strong id="k-abiertos">–</strong></div>
+      <div class="kpi critica"><span>Criticidad Crítica</span><strong id="k-Crítica">–</strong></div>
+      <div class="kpi alta"><span>Criticidad Alta</span><strong id="k-Alta">–</strong></div>
+      <div class="kpi media"><span>Criticidad Media</span><strong id="k-Media">–</strong></div>
+      <div class="kpi baja"><span>Criticidad Baja</span><strong id="k-Baja">–</strong></div>
+    </section>
+    <section class="tiempos">
+      <div class="kpi"><span>Tiempo promedio hasta la primera atención</span><strong id="t-atencion">–</strong></div>
+      <div class="kpi"><span>Tiempo promedio hasta la resolución</span><strong id="t-resolucion">–</strong></div>
+    </section>
+    <div class="barra-listado">
+      <h2>Incidentes recientes</h2>
+      <div class="filtros" id="filtros">
+        <button class="activo" data-estado="">Todos</button>
+        <button data-estado="Sin atender">Sin atender</button>
+        <button data-estado="En tratamiento">En tratamiento</button>
+        <button data-estado="Resuelto">Resuelto</button>
+        <button data-estado="Escalado">Escalado</button>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>ID</th><th>Empleado</th><th>Tipo de incidente</th><th>Criticidad</th><th>Estado</th><th>Fecha</th><th></th></tr></thead>
+      <tbody id="filas"></tbody>
+    </table>
+    <p><small class="nota" id="actualizado"></small></p>
+  </main>
+  <script src="/comun.js"></script>
+  <script src="/dashboard.js"></script>
+</body>
+</html>

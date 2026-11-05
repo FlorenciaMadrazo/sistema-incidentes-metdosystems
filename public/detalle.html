@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MetdoSystems — Tratamiento de Incidente</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="header">
+    <div class="header-top">
+      <div class="marca"><span class="logo">M</span> <span id="titulo">MetdoSystems — Tratamiento de Incidente</span></div>
+      <div class="usuario" id="usuario"></div>
+    </div>
+    <nav class="subnav">
+      <a href="/dashboard.html">← Volver al dashboard</a>
+      <button type="button" data-logout>Cerrar sesión</button>
+    </nav>
+  </header>
+  <main>
+    <div id="error" class="alerta alerta-error oculto" role="alert"></div>
+    <div id="ok" class="alerta alerta-ok oculto" role="status"></div>
+    <div class="detalle">
+      <div>
+        <section class="card">
+          <div class="titulo-card"><h2>Formulario de Notificación de Incidente (F-NINT)</h2><span id="crit-inicial"></span></div>
+          <dl class="datos">
+            <dt>Reportado por</dt><dd id="d-empleado"></dd>
+            <dt>Tipo percibido</dt><dd id="d-tipo"></dd>
+            <dt>Fecha del reporte</dt><dd id="d-fecha"></dd>
+            <dt>Descripción</dt><dd id="d-desc"></dd>
+            <dt>Evidencia</dt><dd id="d-evidencia"></dd>
+          </dl>
+        </section>
+        <section class="card">
+          <h2>Ficha de Registro Técnico de Tratamiento (F-RETT)</h2>
+          <form id="rett">
+            <div class="dos-col">
+              <label class="campo">Tipo confirmado<select id="tipo_confirmado"><option value="">Elegir...</option></select></label>
+              <label class="campo">Criticidad confirmada (NIST SP 800-61)<select id="criticidad_confirmada"><option value="">Elegir...</option></select></label>
+            </div>
+            <label class="campo">Acciones de contención (Playbook P-RRC)
+              <textarea id="acciones_contencion" maxlength="4000" placeholder="Describí la contención aplicada según el Playbook de Respuesta y Contingencia..."></textarea>
+            </label>
+            <label class="campo">Estado final al cerrar
+              <select id="estado_final"><option value="Resuelto">Resuelto</option><option value="Escalado">Escalado</option></select>
+            </label>
+          </form>
+        </section>
+      </div>
+      <div>
+        <section class="card">
+          <h2>Estado del incidente</h2>
+          <div class="estado-actual"><span class="punto" id="punto"></span><span id="estado"></span></div>
+          <div class="acciones-estado" id="acciones">
+            <button class="btn btn-primario" id="cerrar" type="button">Guardar y cerrar incidente</button>
+            <button class="btn btn-secundario" id="borrador" type="button">Guardar borrador</button>
+          </div>
+          <div class="tiempos-caso">
+            <div>Primera atención: <b id="t-atencion"></b></div>
+            <div>Tiempo hasta la primera atención: <b id="t-dur-atencion"></b></div>
+            <div>Cierre: <b id="t-cierre"></b></div>
+            <div>Tiempo hasta la resolución: <b id="t-dur-cierre"></b></div>
+          </div>
+        </section>
+        <section class="card">
+          <h2>Log de auditoría</h2>
+          <ul class="log" id="log"></ul>
+        </section>
+      </div>
+    </div>
+  </main>
+  <script src="/comun.js"></script>
+  <script src="/detalle.js"></script>
+</body>
+</html>

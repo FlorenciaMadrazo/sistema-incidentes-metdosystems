@@ -1,0 +1,16 @@
+# Configuración para publicar la demostración en Render (https://render.com), plan gratuito.
+services:
+  - type: web
+    name: metdosystems-incidentes
+    runtime: node
+    plan: free
+    buildCommand: "echo Sin dependencias externas"
+    startCommand: "npm start"
+    healthCheckPath: /login.html
+    envVars:
+      - key: NODE_VERSION
+        value: 24.11.0
+      - key: DEMO
+        value: "1"
+      - key: TRUST_PROXY
+        value: "1"

@@ -1,0 +1,16 @@
+{
+  "name": "metdosystems-incidentes",
+  "version": "1.0.0",
+  "description": "Prototipo del Sistema Web de Notificación y Gestión de Incidentes en Startups (TFG, Universidad Siglo 21)",
+  "author": "Florencia Mariel Madrazo",
+  "license": "UNLICENSED",
+  "private": true,
+  "engines": { "node": ">=22.13.0" },
+  "scripts": {
+    "inicializar": "node --no-warnings scripts/inicializar.js",
+    "start": "node --no-warnings src/server.js",
+    "test": "node --no-warnings --test tests/sistema.test.js",
+    "respaldo": "node --no-warnings scripts/respaldo.js",
+    "restaurar": "node --no-warnings scripts/restaurar.js"
+  }
+}
