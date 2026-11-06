@@ -36,7 +36,7 @@ before(async () => {
   await new Promise((ok) => app.servidor.listen(0, ok));
   base = `http://localhost:${app.servidor.address().port}`;
 });
-after(() => app.servidor.close());
+after(() => { app.servidor.closeAllConnections(); app.servidor.close(); });
 
 test('Reglas de criticidad inicial', () => {
   assert.equal(criticidad.calcular('Acceso no reconocido', 'x').criticidad, 'Alta');
@@ -181,4 +181,47 @@ test('Dashboard: filtro por criticidad, orden por urgencia y registro de cada co
   await pedir(`/api/incidentes/${baja.id_incidente}`, adm.cookie);
   const v = await (await pedir(`/api/incidentes/${baja.id_incidente}`, adm.cookie)).json();
   assert.ok(v.log.some((l) => l.accion === 'Caso consultado por TI'));
+});
+
+test('Automatización: aviso en tiempo real a TI cuando entra un incidente', async () => {
+  const emp = await login(EMP); const adm = await login(ADM);
+  const ctrl = new AbortController();
+  const flujo = await fetch(`${base}/api/eventos`, { headers: { Cookie: adm.cookie }, signal: ctrl.signal });
+  assert.equal(flujo.status, 200);
+  assert.equal((await pedir('/api/eventos', emp.cookie)).status, 403, 'un empleado no puede escuchar los avisos de TI');
+  const lector = flujo.body.getReader(); const dec = new TextDecoder(); let texto = '';
+  const llegada = (async () => {
+    while (!texto.includes('event: nuevo-incidente')) { const { value } = await lector.read(); texto += dec.decode(value); }
+  })();
+  const r = await (await pedir('/api/incidentes', emp.cookie, { method: 'POST',
+    body: JSON.stringify({ tipo: 'Acceso no reconocido', descripcion: 'Alguien entró a mi cuenta desde otra ciudad' }) })).json();
+  await Promise.race([llegada, new Promise((_, no) => setTimeout(() => no(new Error('no llegó el aviso')), 3000))]);
+  const datos = JSON.parse(texto.split('event: nuevo-incidente\ndata: ')[1].split('\n')[0]);
+  assert.equal(datos.id_incidente, r.id_incidente);
+  assert.equal(datos.urgente, true);
+  assert.equal(datos.minutos_objetivo, 20);
+  ctrl.abort();
+});
+
+test('Automatización: Playbook sugerido y plazo según el Anexo C', async () => {
+  const emp = await login(EMP); const adm = await login(ADM);
+  const r = await (await pedir('/api/incidentes', emp.cookie, { method: 'POST',
+    body: JSON.stringify({ tipo: 'Comportamiento extraño del sistema', descripcion: 'Se abren ventanas solas en la compu' }) })).json();
+  const v = await (await pedir(`/api/incidentes/${r.id_incidente}`, adm.cookie)).json();
+  assert.equal(v.sugerencia.tipo_confirmado, 'Malware');
+  assert.match(v.sugerencia.acciones, /Desconectar el equipo de la red/);
+  assert.equal(v.plazo.minutos_objetivo, 30);
+  assert.equal(v.plazo.vencido, false);
+  assert.ok(v.log.some((l) => l.accion.startsWith('Aviso automático enviado al panel de TI')));
+});
+
+test('Automatización: un caso abierto pasa a fuera de plazo al vencer el tiempo objetivo', () => {
+  const { plazo } = require('../src/playbook');
+  const hace = (m) => new Date(Date.now() - m * 60000).toISOString();
+  assert.equal(plazo({ tipo_percibido: 'Correo o mensaje sospechoso', fecha_hora: hace(10), estado: 'Sin atender' }, null).vencido, false);
+  assert.equal(plazo({ tipo_percibido: 'Correo o mensaje sospechoso', fecha_hora: hace(16), estado: 'Sin atender' }, null).vencido, true);
+  assert.equal(plazo({ tipo_percibido: 'Otro', fecha_hora: hace(500), estado: 'Sin atender' }, null), null);
+  // Si TI confirma otro tipo, rige el tiempo de ese tipo (fuga de datos: 60 min).
+  assert.equal(plazo({ tipo_percibido: 'Correo o mensaje sospechoso', fecha_hora: hace(40), estado: 'En tratamiento' },
+    { tipo_confirmado: 'Fuga de datos' }).vencido, false);
 });

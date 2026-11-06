@@ -35,6 +35,7 @@
         <section class="card">
           <h2>Ficha de Registro Técnico de Tratamiento (F-RETT)</h2>
           <form id="rett">
+            <div id="sugerencia" class="sugerencia oculto"></div>
             <div class="dos-col">
               <label class="campo">Tipo confirmado<select id="tipo_confirmado"><option value="">Elegir...</option></select></label>
               <label class="campo">Criticidad confirmada (NIST SP 800-61)<select id="criticidad_confirmada"><option value="">Elegir...</option></select></label>
@@ -62,6 +63,10 @@
             <div>Cierre: <b id="t-cierre"></b></div>
             <div>Tiempo hasta la resolución: <b id="t-dur-cierre"></b></div>
           </div>
+        </section>
+        <section class="card playbook" id="card-playbook">
+          <h2>Playbook P-RRC (Anexo C)</h2>
+          <div id="playbook"></div>
         </section>
         <section class="card">
           <h2>Log de auditoría</h2>

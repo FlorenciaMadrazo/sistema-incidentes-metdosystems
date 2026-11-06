@@ -182,3 +182,31 @@ dd#d-desc { white-space: pre-line; }
 .estado.pendiente-de-revisión { background: #eef0f4; color: #4b5566; }
 .botonera .btn, .botonera .reiniciar { white-space: nowrap; flex: none; }
 .filtros select { margin-left: 8px; border: 1px solid #d7dce5; border-radius: 999px; padding: 5px 10px; font-size: 13px; color: var(--muted-2); background: #fff; }
+
+/* Automatizaciones */
+.tiempos { grid-template-columns: 1fr 1fr 1fr; }
+.subnav > span { display: flex; align-items: center; gap: 6px; }
+.en-vivo { color: #c3cde0; font-size: 12px; padding: 0 6px; }
+.en-vivo.ok { color: #7ee2b0; }
+#activar-alertas:disabled { opacity: .8; cursor: default; }
+.plazo { font-size: 12.5px; white-space: nowrap; }
+.plazo.vencido { color: var(--critica); font-weight: 700; }
+.plazo.corre { color: #2557b3; font-weight: 600; }
+.plazo.ok { color: var(--baja); }
+.plazo.fuera { color: var(--media); }
+tr.nuevo td { background: #fff7d6 !important; transition: background 2s; }
+.avisos { position: fixed; top: 110px; right: 24px; display: grid; gap: 12px; z-index: 10; width: 340px; }
+.aviso { background: #fff; border: 1px solid var(--border); border-left: 5px solid var(--navy); border-radius: 12px;
+  padding: 14px 16px; box-shadow: 0 14px 30px rgba(31,38,51,.18); display: grid; gap: 6px; font-size: 14px;
+  animation: entrar .25s ease-out; }
+.aviso.urgente { border-left-color: var(--critica); }
+.aviso-acciones { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+.aviso-acciones .btn { width: auto; padding: 8px 14px; text-decoration: none; font-size: 13px; }
+@keyframes entrar { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .aviso { animation: none; } }
+.sugerencia { background: #f3f6fc; border: 1px solid #d6e0f2; border-radius: 10px; padding: 10px 12px; font-size: 13px;
+  color: #2c3e66; margin-bottom: 14px; }
+.playbook dl.datos { grid-template-columns: 110px 1fr; font-size: 13.5px; gap: 8px 10px; }
+.limite { font-weight: 700; }
+.limite.vencido { color: var(--critica); } .limite.corre { color: #2557b3; } .limite.ok { color: var(--baja); }
+@media (max-width: 900px) { .tiempos { grid-template-columns: 1fr; } .avisos { left: 16px; right: 16px; width: auto; } }

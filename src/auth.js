@@ -102,11 +102,18 @@ function leerSesion(token, ahora = Date.now()) {
   return s;
 }
 
+// Comprueba que la sesión siga vigente sin renovar su actividad (para conexiones abiertas).
+function sesionVigente(token, ahora = Date.now()) {
+  if (!token) return false;
+  const s = sesiones.get(String(token).split('.')[0]);
+  return Boolean(s) && ahora - s.ultimaActividad <= INACTIVIDAD_MS;
+}
+
 function cerrarSesion(token) {
   if (token) sesiones.delete(String(token).split('.')[0]);
 }
 
 module.exports = {
   HAY_ARGON2, hashPassword, verificarPassword, validarPolitica, estadoBloqueo,
-  crearSesion, leerSesion, cerrarSesion, MAX_INTENTOS, INACTIVIDAD_MS,
+  crearSesion, leerSesion, sesionVigente, cerrarSesion, MAX_INTENTOS, INACTIVIDAD_MS,
 };

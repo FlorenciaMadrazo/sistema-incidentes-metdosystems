@@ -66,11 +66,12 @@ Otros empleados de ejemplo (misma contraseña): ivan.castro@, lucia.farfan@ y ro
 npm test
 ```
 
-Ejecuta 13 pruebas que verifican: las reglas de criticidad, el uso de Argon2id, la política de contraseñas, el rechazo
+Ejecuta 16 pruebas que verifican: las reglas de criticidad, el uso de Argon2id, la política de contraseñas, el rechazo
 sin sesión, el control de acceso por roles en el servidor, el flujo completo con cifrado y tiempos,
 la detección de evidencia alterada, el rechazo de archivos disfrazados, la inmutabilidad del log de
 auditoría, el bloqueo tras 5 intentos fallidos, la invalidación de la sesión al cerrarla y el orden
-por urgencia y los filtros del dashboard.
+por urgencia y los filtros del dashboard, el aviso en tiempo real a TI, la sugerencia del Playbook y
+el control de los tiempos objetivo.
 
 ## 6. Respaldo y restauración
 
@@ -105,6 +106,13 @@ datos y se niega a continuar si el archivo fue alterado. El servidor debe estar 
 - Tratamiento (F-RETT) con registro automático de la primera atención y del cierre.
 - Log de auditoría de solo agregado, protegido en la base contra modificaciones y borrados. Registra la
   creación, la criticidad asignada, cada consulta del caso por TI, el acceso a la evidencia y el cierre.
+- **Automatizaciones:**
+  - Aviso en tiempo real al panel de TI cuando entra un incidente (Server-Sent Events), con alerta
+    sonora y notificación del navegador para los casos Críticos y Altos.
+  - Ficha F-RETT precargada con las acciones del Playbook P-RRC (Anexo C) según el tipo de incidente;
+    TI la revisa y la ajusta antes de cerrar.
+  - Control del tiempo objetivo de contención del Anexo C: cada caso abierto muestra cuánto falta y
+    se marca como vencido al superarlo; el dashboard cuenta los casos fuera de plazo.
 - Encabezados de seguridad (CSP, X-Frame-Options, nosniff) y control de origen en las solicitudes.
 - Respaldo cifrado con verificación SHA-256 y restauración.
 

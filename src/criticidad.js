@@ -11,11 +11,11 @@ const TIPOS = {
 
 // Palabras clave asociadas a fuga de datos o fraude: elevan un correo sospechoso a Crítica.
 const PALABRAS_FUGA = [
-  'contrasena', 'clave', 'password', 'credencial', 'usuario y',
-  'transferencia', 'pago', 'escribi mis datos',
+  'contraseña', 'clave', 'password', 'credencial', 'usuario y',
+  'transferencia', 'pago', 'escribí mis datos',
   'tarjeta', 'cbu', 'cuenta bancaria', 'homebanking', 'dni',
-  'datos de clientes', 'datos personales', 'base de datos', 'informacion confidencial',
-  'filtr', 'fuga', 'envie mis datos', 'puse mis datos', 'ingrese mis datos',
+  'datos de clientes', 'datos personales', 'base de datos', 'información confidencial',
+  'filtr', 'fuga', 'envié mis datos', 'puse mis datos', 'ingresé mis datos',
 ];
 
 function normalizar(texto) {
@@ -30,7 +30,7 @@ function calcular(tipo, descripcion) {
   if (tipo === 'Correo o mensaje sospechoso') {
     const texto = normalizar(descripcion);
     // La palabra clave tiene que empezar una palabra («pago» no coincide con «se apagó»).
-    const hallada = PALABRAS_FUGA.find((p) => new RegExp(`(^|[^a-z0-9])${p}`).test(texto));
+    const hallada = PALABRAS_FUGA.find((p) => new RegExp(`(^|[^a-z0-9])${normalizar(p)}`).test(texto));
     if (hallada) {
       return { criticidad: 'Crítica', motivo: `palabra clave de fuga de datos o fraude detectada: «${hallada}»` };
     }

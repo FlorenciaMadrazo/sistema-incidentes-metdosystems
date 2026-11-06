@@ -8,6 +8,7 @@ const db_ = require('./db');
 const auth = require('./auth');
 const criticidad = require('./criticidad');
 const cifrado = require('./cifrado');
+const playbook = require('./playbook');
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 const MAX_ADJUNTO = 5 * 1024 * 1024; // 5 MB
@@ -33,6 +34,32 @@ function crearApp({ db = db_.abrir() } = {}) {
   const auditar = (idIncidente, accion, usuario) => db.prepare(
     'INSERT INTO log_auditoria (id_incidente, accion, usuario, fecha_hora) VALUES (?, ?, ?, ?)')
     .run(idIncidente ?? null, accion, usuario, ahora());
+
+  // ---------- avisos en tiempo real al panel de TI (Server-Sent Events) ----------
+  const oyentes = new Set(); // { res, token }
+  function suscribir(req, res) {
+    sesion(req, 'admin');
+    const token = cookie(req, 'sid');
+    res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-store',
+      Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
+    res.write('retry: 5000\n\n');
+    const o = { res, token };
+    oyentes.add(o);
+    req.on('close', () => oyentes.delete(o));
+  }
+  function emitir(evento, datos) {
+    for (const o of oyentes) {
+      if (!auth.sesionVigente(o.token)) { o.res.end(); oyentes.delete(o); continue; }
+      o.res.write(`event: ${evento}\ndata: ${JSON.stringify(datos)}\n\n`);
+    }
+  }
+  // Mantiene viva la conexión y corta las de sesiones vencidas o cerradas.
+  const latido = setInterval(() => {
+    for (const o of oyentes) {
+      if (!auth.sesionVigente(o.token)) { o.res.end(); oyentes.delete(o); } else o.res.write(': latido\n\n');
+    }
+  }, 20000);
+  latido.unref();
 
   // ---------- utilidades HTTP ----------
   function enviar(res, estado, cuerpo, extra = {}) {
@@ -128,11 +155,12 @@ function crearApp({ db = db_.abrir() } = {}) {
     const crit = criticidad.calcular(tipo, descripcion);
     const fecha = ahora();
 
+    let id;
     db.exec('BEGIN');
     try {
       const r = db.prepare(`INSERT INTO incidente (id_empleado, tipo_percibido, descripcion, fecha_hora, criticidad_inicial, estado)
         VALUES (?, ?, ?, ?, ?, 'Sin atender')`).run(s.id, tipo, descripcion, fecha, crit.criticidad);
-      const id = Number(r.lastInsertRowid);
+      id = Number(r.lastInsertRowid);
       auditar(id, 'Incidente creado (F-NINT)', s.email);
       auditar(id, `Criticidad inicial asignada: ${crit.criticidad} (${crit.motivo})`, 'sistema');
       if (adj) {
@@ -144,8 +172,14 @@ function crearApp({ db = db_.abrir() } = {}) {
         auditar(id, 'Evidencia adjuntada y cifrada (AES-256-GCM)', s.email);
       }
       db.exec('COMMIT');
-      enviar(res, 201, { id_incidente: id, criticidad_inicial: crit.criticidad, estado: 'Sin atender' });
     } catch (e) { db.exec('ROLLBACK'); throw e; }
+    // Aviso inmediato al panel de TI; los casos Críticos y Altos se marcan como urgentes.
+    const urgente = ['Crítica', 'Alta'].includes(crit.criticidad);
+    const p = playbook.plazo({ tipo_percibido: tipo, fecha_hora: fecha, estado: 'Sin atender' }, null);
+    emitir('nuevo-incidente', { id_incidente: id, tipo_percibido: tipo, criticidad: crit.criticidad, urgente,
+      empleado: s.nombre, area: s.area, fecha_hora: fecha, minutos_objetivo: p ? p.minutos_objetivo : null });
+    auditar(id, `Aviso automático enviado al panel de TI${urgente ? ' (urgente)' : ''}`, 'sistema');
+    enviar(res, 201, { id_incidente: id, criticidad_inicial: crit.criticidad, estado: 'Sin atender' });
   }
 
   function misIncidentes(req, res) {
@@ -157,7 +191,7 @@ function crearApp({ db = db_.abrir() } = {}) {
 
   const CONSULTA_LISTADO = `
     SELECT i.id_incidente, i.tipo_percibido, i.fecha_hora, i.criticidad_inicial, i.estado,
-           e.nombre AS empleado, e.area, t.criticidad_confirmada,
+           e.nombre AS empleado, e.area, t.criticidad_confirmada, t.tipo_confirmado,
            t.fecha_primera_atencion, t.fecha_cierre
     FROM incidente i JOIN empleado e ON e.id_empleado = i.id_empleado
     LEFT JOIN tratamiento t ON t.id_incidente = i.id_incidente`;
@@ -177,6 +211,7 @@ function crearApp({ db = db_.abrir() } = {}) {
       WHERE (? IS NULL OR i.estado = ?)
         AND (? IS NULL OR COALESCE(t.criticidad_confirmada, i.criticidad_inicial) = ?) ` + ORDEN_URGENCIA)
       .all(estado, estado, nivel, nivel);
+    for (const f of filas) f.plazo = playbook.plazo(f, f);
     enviar(res, 200, filas);
   }
 
@@ -191,6 +226,7 @@ function crearApp({ db = db_.abrir() } = {}) {
     enviar(res, 200, {
       abiertos: abiertos.length,
       sin_atender: abiertos.filter((f) => f.estado === 'Sin atender').length,
+      fuera_de_plazo: abiertos.filter((f) => playbook.plazo(f, f)?.vencido).length,
       por_criticidad: porNivel,
       minutos_promedio_primera_atencion: prom(tratados.map((f) => minutos(f.fecha_hora, f.fecha_primera_atencion))),
       minutos_promedio_resolucion: prom(tratados.filter((f) => f.fecha_cierre).map((f) => minutos(f.fecha_hora, f.fecha_cierre))),
@@ -226,7 +262,13 @@ function crearApp({ db = db_.abrir() } = {}) {
     }
     const adjunto = db.prepare('SELECT id_adjunto, fecha_carga FROM adjunto WHERE id_incidente = ?').get(id) || null;
     const log = db.prepare('SELECT accion, usuario, fecha_hora FROM log_auditoria WHERE id_incidente = ? ORDER BY id_log').all(id);
+    // Sugerencia automática del Playbook (Anexo C) según el tipo percibido; TI la confirma o la cambia.
+    const tipoSugerido = playbook.tipoSugerido(inc.tipo_percibido);
     enviar(res, 200, { incidente: inc, tratamiento: trat, adjunto, log,
+      sugerencia: { tipo_confirmado: tipoSugerido, acciones: playbook.accionesSugeridas(tipoSugerido),
+        criticidad: tipoSugerido ? playbook.PLAYBOOK[tipoSugerido].criticidad : null },
+      plazo: playbook.plazo(inc, trat),
+      playbook: playbook.PLAYBOOK,
       opciones: { niveles: NIVELES, tipos: TIPOS_CONFIRMADOS } });
   }
 
@@ -323,6 +365,7 @@ function crearApp({ db = db_.abrir() } = {}) {
         const s = auth.leerSesion(cookie(req, 'sid'));
         if (s) auditar(null, 'Cierre de sesión', s.email);
         auth.cerrarSesion(cookie(req, 'sid'));
+        for (const o of oyentes) if (o.token === cookie(req, 'sid')) { o.res.end(); oyentes.delete(o); }
         return enviar(res, 200, { ok: true }, { 'Set-Cookie': 'sid=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0' });
       }
       if (req.method === 'GET' && ruta === '/api/me') {
@@ -334,6 +377,7 @@ function crearApp({ db = db_.abrir() } = {}) {
       if (req.method === 'GET' && ruta === '/api/mis-incidentes') return misIncidentes(req, res);
       if (req.method === 'GET' && ruta === '/api/incidentes') return listarIncidentes(req, res, url);
       if (req.method === 'GET' && ruta === '/api/resumen') return resumen(req, res);
+      if (req.method === 'GET' && ruta === '/api/eventos') return suscribir(req, res);
       if (m && req.method === 'GET' && !m[2]) return verIncidente(req, res, id);
       if (m && req.method === 'PUT' && m[2] === '/tratamiento') return guardarTratamiento(req, res, id, await leerCuerpo(req, 64 * 1024));
       if (m && req.method === 'GET' && m[2] === '/adjunto') return descargarAdjunto(req, res, id, url);

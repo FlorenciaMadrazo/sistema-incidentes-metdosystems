@@ -14,7 +14,9 @@
     </div>
     <nav class="subnav">
       <span><a href="/dashboard.html" class="activo">Dashboard de TI</a></span>
-      <button type="button" data-logout>Cerrar sesión</button>
+      <span><button type="button" id="activar-alertas">🔔 Activar alertas sonoras</button>
+        <span class="en-vivo" id="en-vivo" title="Conexión en tiempo real con el servidor">● Conectando...</span>
+        <button type="button" data-logout>Cerrar sesión</button></span>
     </nav>
   </header>
   <main>
@@ -28,6 +30,7 @@
     <section class="tiempos">
       <div class="kpi"><span>Tiempo promedio hasta la primera atención</span><strong id="t-atencion">–</strong></div>
       <div class="kpi"><span>Tiempo promedio hasta la resolución</span><strong id="t-resolucion">–</strong></div>
+      <div class="kpi" id="kpi-vencidos"><span>Abiertos fuera del tiempo objetivo (P-RRC)</span><strong id="t-vencidos">–</strong></div>
     </section>
     <div class="barra-listado">
       <h2>Incidentes por urgencia</h2>
@@ -43,10 +46,11 @@
       </div>
     </div>
     <table>
-      <thead><tr><th>ID</th><th>Empleado</th><th>Tipo de incidente</th><th>Criticidad</th><th>Estado</th><th>Fecha</th><th></th></tr></thead>
+      <thead><tr><th>ID</th><th>Empleado</th><th>Tipo de incidente</th><th>Criticidad</th><th>Estado</th><th>Plazo (P-RRC)</th><th>Fecha</th><th></th></tr></thead>
       <tbody id="filas"></tbody>
     </table>
     <p><small class="nota" id="actualizado"></small></p>
+    <div class="avisos" id="avisos" aria-live="assertive"></div>
   </main>
   <script src="/comun.js"></script>
   <script src="/dashboard.js"></script>

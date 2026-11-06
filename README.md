@@ -29,6 +29,7 @@ contraseña: ivan.castro@, lucia.farfan@ y rodrigo.sosa@metdosystems.com.
 - Reporte guiado (F-NINT) con criticidad inicial automática según reglas verificables.
 - Evidencia adjunta cifrada con AES-256-GCM.
 - Dashboard de TI ordenado por urgencia, con filtros, resumen por criticidad y tiempos promedio hasta la primera atención y hasta la resolución.
+- Aviso en tiempo real a TI, ficha precargada con el Playbook (Anexo C) y control del tiempo objetivo.
 - Registro del tratamiento (F-RETT) y log de auditoría que no puede modificarse ni borrarse.
 - Respaldo cifrado con verificación SHA-256 y restauración.
 
