@@ -5,7 +5,7 @@
   "author": "Florencia Mariel Madrazo",
   "license": "UNLICENSED",
   "private": true,
-  "engines": { "node": ">=22.13.0" },
+  "engines": { "node": ">=24.7.0" },
   "scripts": {
     "inicializar": "node --no-warnings scripts/inicializar.js",
     "start": "node --no-warnings src/server.js",

@@ -4,18 +4,40 @@
 const crypto = require('node:crypto');
 const { obtenerClave } = require('./cifrado');
 
-// scrypt con los parámetros mínimos que recomienda OWASP (N = 2^17, r = 8, p = 1).
+// Resumen de contraseñas con Argon2id (incorporado en Node.js 24), con los parámetros
+// mínimos que recomienda OWASP: 19 MiB de memoria, 2 iteraciones y paralelismo 1.
+// Si el entorno no ofrece Argon2id (Node.js 22), se usa scrypt con parámetros de OWASP.
+const ARGON2 = { memory: 19456, passes: 2, parallelism: 1, tagLength: 32 };
 const SCRYPT = { N: 2 ** 17, r: 8, p: 1, maxmem: 256 * 1024 * 1024 };
+const HAY_ARGON2 = typeof crypto.argon2Sync === 'function';
+
+function argon2id(password, sal, p = ARGON2) {
+  return crypto.argon2Sync('argon2id', { message: Buffer.from(password, 'utf8'), nonce: sal,
+    parallelism: p.parallelism, tagLength: p.tagLength, memory: p.memory, passes: p.passes });
+}
 
 function hashPassword(password) {
   const sal = crypto.randomBytes(16);
+  if (HAY_ARGON2) {
+    const h = argon2id(password, sal);
+    return `argon2id$m=${ARGON2.memory},t=${ARGON2.passes},p=${ARGON2.parallelism}$${sal.toString('hex')}$${h.toString('hex')}`;
+  }
   const hash = crypto.scryptSync(password, sal, 32, SCRYPT);
   return `scrypt$${SCRYPT.N}$${SCRYPT.r}$${SCRYPT.p}$${sal.toString('hex')}$${hash.toString('hex')}`;
 }
 
 function verificarPassword(password, almacenado) {
-  const [alg, N, r, p, salHex, hashHex] = String(almacenado).split('$');
-  if (alg !== 'scrypt') return false;
+  const partes = String(almacenado).split('$');
+  if (partes[0] === 'argon2id') {
+    if (!HAY_ARGON2) return false;
+    const params = Object.fromEntries(partes[1].split(',').map((kv) => kv.split('=')));
+    const esperado = Buffer.from(partes[3], 'hex');
+    const calculado = argon2id(password, Buffer.from(partes[2], 'hex'), { memory: Number(params.m),
+      passes: Number(params.t), parallelism: Number(params.p), tagLength: esperado.length });
+    return crypto.timingSafeEqual(esperado, calculado);
+  }
+  if (partes[0] !== 'scrypt') return false;
+  const [, N, r, p, salHex, hashHex] = partes;
   const esperado = Buffer.from(hashHex, 'hex');
   const calculado = crypto.scryptSync(password, Buffer.from(salHex, 'hex'), esperado.length,
     { N: Number(N), r: Number(r), p: Number(p), maxmem: SCRYPT.maxmem });
@@ -85,6 +107,6 @@ function cerrarSesion(token) {
 }
 
 module.exports = {
-  hashPassword, verificarPassword, validarPolitica, estadoBloqueo,
+  HAY_ARGON2, hashPassword, verificarPassword, validarPolitica, estadoBloqueo,
   crearSesion, leerSesion, cerrarSesion, MAX_INTENTOS, INACTIVIDAD_MS,
 };

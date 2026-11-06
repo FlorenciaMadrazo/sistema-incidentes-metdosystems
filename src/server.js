@@ -162,12 +162,21 @@ function crearApp({ db = db_.abrir() } = {}) {
     FROM incidente i JOIN empleado e ON e.id_empleado = i.id_empleado
     LEFT JOIN tratamiento t ON t.id_incidente = i.id_incidente`;
 
+  // Orden por urgencia: primero lo abierto, después la criticidad (vigente) y por último lo más reciente.
+  const ORDEN_URGENCIA = `ORDER BY
+      CASE i.estado WHEN 'Sin atender' THEN 0 WHEN 'En tratamiento' THEN 1 ELSE 2 END,
+      CASE COALESCE(t.criticidad_confirmada, i.criticidad_inicial)
+        WHEN 'Crítica' THEN 0 WHEN 'Alta' THEN 1 WHEN 'Media' THEN 2 ELSE 3 END,
+      i.fecha_hora DESC`;
+
   function listarIncidentes(req, res, url) {
     sesion(req, 'admin');
-    const estado = url.searchParams.get('estado');
-    const filas = estado
-      ? db.prepare(CONSULTA_LISTADO + ' WHERE i.estado = ? ORDER BY i.id_incidente DESC').all(estado)
-      : db.prepare(CONSULTA_LISTADO + ' ORDER BY i.id_incidente DESC').all();
+    const estado = url.searchParams.get('estado') || null;
+    const nivel = url.searchParams.get('criticidad') || null;
+    const filas = db.prepare(CONSULTA_LISTADO + `
+      WHERE (? IS NULL OR i.estado = ?)
+        AND (? IS NULL OR COALESCE(t.criticidad_confirmada, i.criticidad_inicial) = ?) ` + ORDEN_URGENCIA)
+      .all(estado, estado, nivel, nivel);
     enviar(res, 200, filas);
   }
 
@@ -195,7 +204,7 @@ function crearApp({ db = db_.abrir() } = {}) {
     return inc;
   }
 
-  function verIncidente(req, res, id) {
+  function verIncidente(req, res, id, registrarAcceso = true) {
     const s = sesion(req, 'admin');
     let inc = buscarIncidente(id);
     let trat = db.prepare('SELECT * FROM tratamiento WHERE id_incidente = ?').get(id);
@@ -212,6 +221,8 @@ function crearApp({ db = db_.abrir() } = {}) {
       } catch (e) { db.exec('ROLLBACK'); throw e; }
       inc = buscarIncidente(id);
       trat = db.prepare('SELECT * FROM tratamiento WHERE id_incidente = ?').get(id);
+    } else if (registrarAcceso) {
+      auditar(id, 'Caso consultado por TI', s.email);
     }
     const adjunto = db.prepare('SELECT id_adjunto, fecha_carga FROM adjunto WHERE id_incidente = ?').get(id) || null;
     const log = db.prepare('SELECT accion, usuario, fecha_hora FROM log_auditoria WHERE id_incidente = ? ORDER BY id_log').all(id);
@@ -254,10 +265,10 @@ function crearApp({ db = db_.abrir() } = {}) {
       }
       db.exec('COMMIT');
     } catch (e) { db.exec('ROLLBACK'); throw e; }
-    verIncidente(req, res, id);
+    verIncidente(req, res, id, false);
   }
 
-  function descargarAdjunto(req, res, id) {
+  function descargarAdjunto(req, res, id, url) {
     const s = sesion(req, 'admin');
     const adj = db.prepare('SELECT * FROM adjunto WHERE id_incidente = ?').get(id);
     if (!adj) throw new ErrorHttp(404, 'El incidente no tiene evidencia adjunta.');
@@ -269,9 +280,11 @@ function crearApp({ db = db_.abrir() } = {}) {
       auditar(id, 'Error de integridad al descifrar la evidencia', s.email);
       throw new ErrorHttp(500, 'La evidencia no pudo verificarse: el archivo pudo haber sido alterado.');
     }
-    auditar(id, 'Evidencia descifrada y descargada', s.email);
+    // Las imágenes y los PDF se pueden ver en el navegador; el resto siempre se descarga.
+    const ver = url.searchParams.get('ver') === '1' && /^(image\/(png|jpeg)|application\/pdf)$/.test(datos.tipo);
+    auditar(id, ver ? 'Evidencia descifrada y visualizada' : 'Evidencia descifrada y descargada', s.email);
     res.writeHead(200, { 'Content-Type': datos.tipo, 'Cache-Control': 'no-store',
-      'Content-Disposition': `attachment; filename="${encodeURIComponent(datos.nombre)}"` });
+      'Content-Disposition': `${ver ? 'inline' : 'attachment'}; filename="${encodeURIComponent(datos.nombre)}"` });
     res.end(datos.contenido);
   }
 
@@ -323,7 +336,7 @@ function crearApp({ db = db_.abrir() } = {}) {
       if (req.method === 'GET' && ruta === '/api/resumen') return resumen(req, res);
       if (m && req.method === 'GET' && !m[2]) return verIncidente(req, res, id);
       if (m && req.method === 'PUT' && m[2] === '/tratamiento') return guardarTratamiento(req, res, id, await leerCuerpo(req, 64 * 1024));
-      if (m && req.method === 'GET' && m[2] === '/adjunto') return descargarAdjunto(req, res, id);
+      if (m && req.method === 'GET' && m[2] === '/adjunto') return descargarAdjunto(req, res, id, url);
       throw new ErrorHttp(404, 'Ruta inexistente.');
     } catch (e) {
       if (e instanceof ErrorHttp) return enviar(res, e.estado, { error: e.message });

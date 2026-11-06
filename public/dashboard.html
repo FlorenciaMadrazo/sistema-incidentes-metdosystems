@@ -30,13 +30,16 @@
       <div class="kpi"><span>Tiempo promedio hasta la resolución</span><strong id="t-resolucion">–</strong></div>
     </section>
     <div class="barra-listado">
-      <h2>Incidentes recientes</h2>
+      <h2>Incidentes por urgencia</h2>
       <div class="filtros" id="filtros">
         <button class="activo" data-estado="">Todos</button>
         <button data-estado="Sin atender">Sin atender</button>
         <button data-estado="En tratamiento">En tratamiento</button>
         <button data-estado="Resuelto">Resuelto</button>
         <button data-estado="Escalado">Escalado</button>
+        <select id="filtro-criticidad" aria-label="Filtrar por criticidad">
+          <option value="">Toda criticidad</option><option>Crítica</option><option>Alta</option><option>Media</option><option>Baja</option>
+        </select>
       </div>
     </div>
     <table>

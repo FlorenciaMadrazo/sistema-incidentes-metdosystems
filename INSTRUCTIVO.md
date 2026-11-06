@@ -10,7 +10,8 @@ de cada acción.
 
 ## 1. Requisitos
 
-- **Node.js 22.13 o superior** (se recomienda la versión LTS 24). Se descarga de https://nodejs.org
+- **Node.js 24 LTS** (se descarga de https://nodejs.org). Node.js 24 incluye Argon2id, que es el algoritmo
+  que usa el sistema para las contraseñas. Con Node.js 22 el sistema también funciona, pero usa scrypt.
 - Un navegador actualizado (Chrome, Edge o Firefox).
 - No hace falta instalar ninguna biblioteca adicional: el sistema usa solo módulos incluidos en Node.js
   (servidor HTTP, base de datos SQLite y criptografía).
@@ -65,10 +66,11 @@ Otros empleados de ejemplo (misma contraseña): ivan.castro@, lucia.farfan@ y ro
 npm test
 ```
 
-Ejecuta 10 pruebas que verifican: las reglas de criticidad, la política de contraseñas, el rechazo
+Ejecuta 13 pruebas que verifican: las reglas de criticidad, el uso de Argon2id, la política de contraseñas, el rechazo
 sin sesión, el control de acceso por roles en el servidor, el flujo completo con cifrado y tiempos,
 la detección de evidencia alterada, el rechazo de archivos disfrazados, la inmutabilidad del log de
-auditoría, el bloqueo tras 5 intentos fallidos y la invalidación de la sesión al cerrarla.
+auditoría, el bloqueo tras 5 intentos fallidos, la invalidación de la sesión al cerrarla y el orden
+por urgencia y los filtros del dashboard.
 
 ## 6. Respaldo y restauración
 
@@ -85,17 +87,24 @@ datos y se niega a continuar si el archivo fue alterado. El servidor debe estar 
 
 **Implementado**
 
-- Inicio de sesión con contraseñas resumidas con scrypt (sal individual, parámetros de OWASP).
+- Inicio de sesión con contraseñas resumidas con Argon2id (sal individual; 19 MiB de memoria, 2 iteraciones,
+  según OWASP).
 - Política de contraseñas de 15 a 64 caracteres, con rechazo de contraseñas comunes (NIST SP 800-63B-4).
 - Bloqueo de la cuenta durante 15 minutos tras 5 intentos fallidos, con registro de la IP.
 - Sesión con token aleatorio firmado (HMAC-SHA256) en una cookie HttpOnly y SameSite=Strict,
   con vencimiento a los 30 minutos sin actividad e invalidación al cerrar sesión.
 - Control de acceso por roles verificado en el servidor en cada solicitud.
-- Reporte guiado (F-NINT) con criticidad inicial calculada en el servidor según las reglas verificables.
-- Evidencia validada por tipo y contenido, de hasta 5 MB, y cifrada con AES-256-GCM antes de guardarse.
-- Dashboard con resumen por criticidad, filtros por estado y tiempos promedio.
+- Reporte guiado (F-NINT) como conversación paso a paso, con una pregunta de seguimiento según el tipo
+  de incidente, resumen antes de enviar y número de ticket.
+- Criticidad inicial calculada en el servidor según las reglas verificables (un correo sospechoso pasa
+  a Crítica si menciona contraseñas, claves, credenciales, pagos, transferencias o datos sensibles).
+- Evidencia validada por tipo y contenido, de hasta 5 MB, y cifrada con AES-256-GCM (IV único por archivo
+  y etiqueta de autenticación) antes de guardarse. Solo TI puede verla o descargarla, descifrada en memoria.
+- Dashboard con resumen por criticidad, incidentes ordenados por urgencia, filtros por estado y por
+  criticidad, y tiempos promedio hasta la primera atención y hasta la resolución.
 - Tratamiento (F-RETT) con registro automático de la primera atención y del cierre.
-- Log de auditoría de solo agregado, protegido en la base contra modificaciones y borrados.
+- Log de auditoría de solo agregado, protegido en la base contra modificaciones y borrados. Registra la
+  creación, la criticidad asignada, cada consulta del caso por TI, el acceso a la evidencia y el cierre.
 - Encabezados de seguridad (CSP, X-Frame-Options, nosniff) y control de origen en las solicitudes.
 - Respaldo cifrado con verificación SHA-256 y restauración.
 

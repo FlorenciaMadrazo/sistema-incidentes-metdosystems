@@ -24,17 +24,18 @@ contraseña: ivan.castro@, lucia.farfan@ y rodrigo.sosa@metdosystems.com.
 
 ## Qué incluye
 
-- Inicio de sesión con control de acceso por roles verificado en el servidor, bloqueo por intentos
+- Contraseñas resumidas con Argon2id e inicio de sesión con control de acceso por roles verificado en el servidor, bloqueo por intentos
   fallidos y sesiones que vencen por inactividad.
 - Reporte guiado (F-NINT) con criticidad inicial automática según reglas verificables.
 - Evidencia adjunta cifrada con AES-256-GCM.
-- Dashboard de TI con resumen por criticidad y tiempos promedio hasta la primera atención y hasta la resolución.
+- Dashboard de TI ordenado por urgencia, con filtros, resumen por criticidad y tiempos promedio hasta la primera atención y hasta la resolución.
 - Registro del tratamiento (F-RETT) y log de auditoría que no puede modificarse ni borrarse.
 - Respaldo cifrado con verificación SHA-256 y restauración.
 
 ## Ejecutar en una computadora
 
-Requiere Node.js 22.13 o superior (sin dependencias externas).
+Requiere Node.js 24 LTS. No usa dependencias externas: el servidor, la base SQLite y la criptografía
+(Argon2id, AES-256-GCM, HMAC-SHA256) son módulos incorporados en Node.js.
 
 ```
 npm run inicializar

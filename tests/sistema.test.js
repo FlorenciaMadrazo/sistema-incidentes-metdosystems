@@ -151,3 +151,34 @@ test('Cerrar sesión invalida el token', async () => {
   await pedir('/api/logout', emp.cookie, { method: 'POST' });
   assert.equal((await pedir('/api/me', emp.cookie)).status, 401);
 });
+
+test('Argon2id cuando el entorno lo ofrece (Node.js 24)', () => {
+  const { HAY_ARGON2, verificarPassword } = require('../src/auth');
+  const h = hashPassword('Reporte-Seguro-2026');
+  assert.match(h, HAY_ARGON2 ? /^argon2id\$m=19456,t=2,p=1\$/ : /^scrypt\$/);
+  assert.equal(verificarPassword('Reporte-Seguro-2026', h), true);
+  assert.equal(verificarPassword('otra-contraseña-larga', h), false);
+});
+
+test('Palabras clave de fraude y coincidencia solo al inicio de palabra', () => {
+  const c = (d) => criticidad.calcular('Correo o mensaje sospechoso', d).criticidad;
+  assert.equal(c('Me pidieron hacer una transferencia urgente'), 'Crítica');
+  assert.equal(c('Un correo para verificar un pago'), 'Crítica');
+  assert.equal(c('Me llegó un correo y después se apagó la compu'), 'Media');
+});
+
+test('Dashboard: filtro por criticidad, orden por urgencia y registro de cada consulta', async () => {
+  const emp = await login(EMP); const adm = await login(ADM);
+  const crear = (tipo, descripcion) => pedir('/api/incidentes', emp.cookie, { method: 'POST', body: JSON.stringify({ tipo, descripcion }) })
+    .then((r) => r.json());
+  const baja = await crear('Otro', 'Algo menor que quiero avisar');
+  const critica = await crear('Correo o mensaje sospechoso', 'Me pidieron la clave del homebanking');
+  const lista = await (await pedir('/api/incidentes?estado=Sin%20atender', adm.cookie)).json();
+  const pos = (id) => lista.findIndex((f) => f.id_incidente === id);
+  assert.ok(pos(critica.id_incidente) < pos(baja.id_incidente), 'lo crítico aparece antes que lo de baja criticidad');
+  const soloBaja = await (await pedir('/api/incidentes?criticidad=Baja', adm.cookie)).json();
+  assert.ok(soloBaja.length && soloBaja.every((f) => (f.criticidad_confirmada || f.criticidad_inicial) === 'Baja'));
+  await pedir(`/api/incidentes/${baja.id_incidente}`, adm.cookie);
+  const v = await (await pedir(`/api/incidentes/${baja.id_incidente}`, adm.cookie)).json();
+  assert.ok(v.log.some((l) => l.accion === 'Caso consultado por TI'));
+});

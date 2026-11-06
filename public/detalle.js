@@ -15,8 +15,11 @@ function pintar({ incidente: i, tratamiento: t, adjunto, log, opciones }) {
   $('d-fecha').textContent = fecha(i.fecha_hora, true);
   $('d-desc').textContent = `"${i.descripcion}"`;
   if (adjunto) {
-    $('d-evidencia').replaceChildren(el('a', { href: `/api/incidentes/${i.id_incidente}/adjunto`, class: 'link-boton' },
-      '🔓 Descifrar y descargar evidencia'), el('small', { class: 'nota' }, ` (cifrada con AES-256-GCM, cargada el ${fecha(adjunto.fecha_carga)})`));
+    const base = `/api/incidentes/${i.id_incidente}/adjunto`;
+    $('d-evidencia').replaceChildren(
+      el('a', { href: `${base}?ver=1`, target: '_blank', rel: 'noopener', class: 'link-boton' }, '👁 Ver evidencia'), ' · ',
+      el('a', { href: base, class: 'link-boton' }, '⬇ Descargar'),
+      el('div', { class: 'nota' }, `Cifrada con AES-256-GCM en el servidor; se descifra solo al abrirla (cargada el ${fecha(adjunto.fecha_carga)}).`));
   } else {
     $('d-evidencia').textContent = '— (no adjuntada)';
   }
