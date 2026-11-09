@@ -8,6 +8,8 @@ function aviso(tipo, msg) {
 }
 
 let ultimaSugerencia = '';
+let criticidadTocada = false;
+const ORDEN = ['Baja', 'Media', 'Alta', 'Crítica'];
 let datosPlaybook = {};
 
 function accionesDe(tipo) {
@@ -72,6 +74,11 @@ function pintar({ incidente: i, tratamiento: t, adjunto, log, opciones, sugerenc
     ultimaSugerencia = sugerencia.acciones;
     $('sugerencia').textContent = `✨ Ficha precargada automáticamente con el Playbook (Anexo C) para «${sugerencia.tipo_confirmado}», a partir de lo que reportó el empleado. Revisala y ajustala antes de cerrar el caso.`;
     $('sugerencia').classList.remove('oculto');
+  } else if (sinCompletar) {
+    // Tipo «Otro»: no hay hipótesis automática; se parte de la criticidad inicial y TI clasifica.
+    $('criticidad_confirmada').value = i.criticidad_inicial;
+    $('sugerencia').textContent = '✨ El empleado eligió «Otro», así que el sistema no puede sugerir un tipo. Elegí el tipo confirmado y se cargan automáticamente las acciones y el plazo del Playbook (Anexo C).';
+    $('sugerencia').classList.remove('oculto');
   } else {
     $('sugerencia').classList.add('oculto');
   }
@@ -122,8 +129,11 @@ async function iniciar() {
       area.value = ultimaSugerencia;
     }
     const p = datosPlaybook[ev.target.value];
-    if (p && !$('criticidad_confirmada').value) $('criticidad_confirmada').value = p.criticidad;
+    const sel = $('criticidad_confirmada');
+    // Si TI no tocó la criticidad, toma la de referencia del Playbook sin bajar nunca la inicial.
+    if (p && (!sel.value || !criticidadTocada) && ORDEN.indexOf(p.criticidad) > ORDEN.indexOf(sel.value)) sel.value = p.criticidad;
   });
+  $('criticidad_confirmada').addEventListener('change', () => { criticidadTocada = true; });
   try { pintar(await api(`/api/incidentes/${id}`)); } catch (e) { aviso('error', e.message); }
 }
 iniciar();
