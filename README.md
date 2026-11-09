@@ -11,6 +11,8 @@ ISO/IEC 27035 y NIST SP 800-61. La organización usada como caso es MetdoSystems
 
 **Enlace:** https://sistema-incidentes-metdosystems.onrender.com
 
+Video de la demostración, instructivo y código: [carpeta de Google Drive](https://drive.google.com/drive/folders/1-9bwEFkB8F1Z462RBoT1qG2AeSmjm1BP)
+
 | Rol | Email | Contraseña |
 |---|---|---|
 | Empleado | juana.perez@metdosystems.com | Reporte-Seguro-2026 |
